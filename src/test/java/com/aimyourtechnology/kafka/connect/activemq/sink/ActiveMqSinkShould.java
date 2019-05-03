@@ -1,5 +1,7 @@
 package com.aimyourtechnology.kafka.connect.activemq.sink;
 
+import com.github.dockerjava.api.model.ExposedPort;
+import com.github.dockerjava.api.model.Ports;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.CreateTopicsOptions;
 import org.apache.kafka.clients.admin.CreateTopicsResult;
@@ -31,8 +33,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class ActiveMqSinkShould {
     private static final String INPUT_TOPIC = "modify.op.msgs";
 
-    private static final String ENV_KEY_KAFKA_BROKER_SERVER = "KAFKA_BROKER_SERVER";
-    private static final String ENV_KEY_KAFKA_BROKER_PORT = "KAFKA_BROKER_PORT";
     private static final String KAFKA_DESERIALIZER = "org.apache.kafka.common.serialization.StringDeserializer";
     private static final String KAFKA_SERIALIZER = "org.apache.kafka.common.serialization.StringSerializer";
 
@@ -41,11 +41,14 @@ public class ActiveMqSinkShould {
             .waitingFor(Wait.forLogMessage(".*started.*\\n", 1));
 
     @Container
-    protected static final GenericContainer ACTIVE_MQ_CONTAINER = new GenericContainer("rmohr/activemq:latest");
+    protected static final GenericContainer ACTIVE_MQ_CONTAINER = new GenericContainer("rmohr/activemq:latest")
+            .withNetwork(KAFKA_CONTAINER.getNetwork());
+
     private static final String MESSAGE = "A message";
+    private static final int ACTIVE_MQ_JMS_PORT = 61616;
 
     @Container
-    protected GenericContainer kafkaConnectContainer = new GenericContainer("sns2-system-tests_connect:latest")
+    protected GenericContainer kafkaConnectContainer = new GenericContainer("sns2-system-tests_kafka-connect:latest")
             .withEnv(calculateConnectEnvProperties())
             .withNetwork(KAFKA_CONTAINER.getNetwork());
 
@@ -123,7 +126,7 @@ public class ActiveMqSinkShould {
     }
 
     @Test
-    public void t() throws ExecutionException, InterruptedException {
+    public void transfersMessageOntoActiveMq() throws ExecutionException, InterruptedException {
         writeStringToInputTopic();
         assertJmsMessageArrivedOnOutputMqQueue();
     }
@@ -145,11 +148,29 @@ public class ActiveMqSinkShould {
     }
 
     private void assertJmsMessageArrivedOnOutputMqQueue() {
-        ActiveMqConsumer consumer = new ActiveMqConsumer();
+        ActiveMqConsumer consumer = new ActiveMqConsumer(readActiveMqPort());
         String messageFromActiveMqQueue = consumer.run();
         assertEquals(MESSAGE, messageFromActiveMqQueue);
     }
 
+    private String readActiveMqPort() {
+        return findExposedPortForInternalPort(ACTIVE_MQ_JMS_PORT);
+    }
+
+    private String findExposedPortForInternalPort(int wantedPort) {
+        Map<ExposedPort, Ports.Binding[]> bindings = getActiveMqBindings();
+        Optional<ExposedPort> port = bindings.keySet().stream().filter(k -> wantedPort == k.getPort())
+                                             .findFirst();
+
+        ExposedPort internalPort = port.get();
+        Ports.Binding[] exposedBinding = bindings.get(internalPort);
+        Ports.Binding binding = exposedBinding[0];
+        return binding.getHostPortSpec();
+    }
+
+    private Map<ExposedPort, Ports.Binding[]> getActiveMqBindings() {
+        return ACTIVE_MQ_CONTAINER.getContainerInfo().getNetworkSettings().getPorts().getBindings();
+    }
 
 
     @AfterEach
