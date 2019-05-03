@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
-public class ActiveMqSinkShould {
+public class ActiveMqSinkServiceTest {
     private static final String INPUT_TOPIC = "modify.op.msgs";
 
     private static final String KAFKA_DESERIALIZER = "org.apache.kafka.common.serialization.StringDeserializer";
@@ -101,7 +101,7 @@ public class ActiveMqSinkShould {
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, KAFKA_DESERIALIZER);
         props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "100");
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, ActiveMqSinkShould.class.getName());
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, ActiveMqSinkServiceTest.class.getName());
         return props;
     }
 
