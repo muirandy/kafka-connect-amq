@@ -129,11 +129,11 @@ public class ActiveMqSinkServiceTest {
 
     @Test
     public void transfersMessageOntoActiveMq() throws ExecutionException, InterruptedException {
-        writeStringToInputTopic();
+        writeStringToKafkaInputTopic();
         assertJmsMessageArrivedOnOutputMqQueue();
     }
 
-    protected void writeStringToInputTopic() throws InterruptedException, ExecutionException {
+    protected void writeStringToKafkaInputTopic() throws InterruptedException, ExecutionException {
         new KafkaProducer<String, String>(getKafkaProperties()).send(createProducerRecord()).get();
     }
 
