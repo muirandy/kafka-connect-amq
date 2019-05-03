@@ -36,6 +36,9 @@ public class ActiveMqSinkShould {
     private static final String KAFKA_DESERIALIZER = "org.apache.kafka.common.serialization.StringDeserializer";
     private static final String KAFKA_SERIALIZER = "org.apache.kafka.common.serialization.StringSerializer";
 
+    private static final String MESSAGE_CONTENT = "A message";
+    private static final int ACTIVE_MQ_JMS_PORT = 61616;
+
     @Container
     protected static final KafkaContainer KAFKA_CONTAINER = new KafkaContainer("5.2.1").withEmbeddedZookeeper()
             .waitingFor(Wait.forLogMessage(".*started.*\\n", 1));
@@ -43,9 +46,6 @@ public class ActiveMqSinkShould {
     @Container
     protected static final GenericContainer ACTIVE_MQ_CONTAINER = new GenericContainer("rmohr/activemq:latest")
             .withNetwork(KAFKA_CONTAINER.getNetwork());
-
-    private static final String MESSAGE = "A message";
-    private static final int ACTIVE_MQ_JMS_PORT = 61616;
 
     @Container
     protected GenericContainer kafkaConnectContainer = new GenericContainer("sns2-system-tests_kafka-connect:latest")
@@ -70,21 +70,6 @@ public class ActiveMqSinkShould {
         return properties;
     }
 
-    protected static Properties getKafkaProperties() {
-        Properties props = new Properties();
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_CONTAINER.getBootstrapServers());
-        props.put("acks", "all");
-        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_CONTAINER.getBootstrapServers());
-        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, KAFKA_SERIALIZER);
-        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KAFKA_SERIALIZER);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, KAFKA_DESERIALIZER);
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, KAFKA_DESERIALIZER);
-        props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "100");
-        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, ActiveMqSinkShould.class.getName());
-        return props;
-    }
-
     private void createKafkaTopics() {
         AdminClient adminClient = AdminClient.create(getKafkaProperties());
 
@@ -105,11 +90,25 @@ public class ActiveMqSinkShould {
         adminClient.close();
     }
 
+    protected static Properties getKafkaProperties() {
+        Properties props = new Properties();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_CONTAINER.getBootstrapServers());
+        props.put("acks", "all");
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_CONTAINER.getBootstrapServers());
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, KAFKA_SERIALIZER);
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KAFKA_SERIALIZER);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, KAFKA_DESERIALIZER);
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, KAFKA_DESERIALIZER);
+        props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "100");
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, ActiveMqSinkShould.class.getName());
+        return props;
+    }
+
     private Collection<NewTopic> getTopics() {
         return getTopicNames().stream()
                 .map(n -> new NewTopic(n, 1, (short) 1))
                 .collect(Collectors.toList());
-
     }
 
     protected List<String> getTopicNames() {
@@ -144,34 +143,32 @@ public class ActiveMqSinkShould {
     }
 
     private String createInputMessage() {
-        return MESSAGE;
+        return MESSAGE_CONTENT;
     }
 
     private void assertJmsMessageArrivedOnOutputMqQueue() {
         ActiveMqConsumer consumer = new ActiveMqConsumer(readActiveMqPort());
         String messageFromActiveMqQueue = consumer.run();
-        assertEquals(MESSAGE, messageFromActiveMqQueue);
+        assertEquals(MESSAGE_CONTENT, messageFromActiveMqQueue);
     }
 
     private String readActiveMqPort() {
-        return findExposedPortForInternalPort(ACTIVE_MQ_JMS_PORT);
+        return findExposedPortForInternalPort(ACTIVE_MQ_CONTAINER, ACTIVE_MQ_JMS_PORT);
     }
 
-    private String findExposedPortForInternalPort(int wantedPort) {
-        Map<ExposedPort, Ports.Binding[]> bindings = getActiveMqBindings();
-        Optional<ExposedPort> port = bindings.keySet().stream().filter(k -> wantedPort == k.getPort())
-                                             .findFirst();
+    private String findExposedPortForInternalPort(GenericContainer activeMqContainer, int internalPort) {
+        Map<ExposedPort, Ports.Binding[]> bindings = getActiveMqBindings(activeMqContainer);
+        ExposedPort port = bindings.keySet().stream().filter(k -> internalPort == k.getPort())
+                                             .findFirst().get();
 
-        ExposedPort internalPort = port.get();
-        Ports.Binding[] exposedBinding = bindings.get(internalPort);
+        Ports.Binding[] exposedBinding = bindings.get(port);
         Ports.Binding binding = exposedBinding[0];
         return binding.getHostPortSpec();
     }
 
-    private Map<ExposedPort, Ports.Binding[]> getActiveMqBindings() {
-        return ACTIVE_MQ_CONTAINER.getContainerInfo().getNetworkSettings().getPorts().getBindings();
+    private Map<ExposedPort, Ports.Binding[]> getActiveMqBindings(GenericContainer activeMqContainer) {
+        return activeMqContainer.getContainerInfo().getNetworkSettings().getPorts().getBindings();
     }
-
 
     @AfterEach
     public void tearDown() {
