@@ -31,24 +31,27 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 public class ActiveMqSinkServiceTest {
-    private static final String INPUT_TOPIC = "modify.op.msgs";
+    private static final String KAFKA_CONNECT_IMAGE = "sns2-system-tests_connect:latest";
+    private static final String ACTIVEMQ_IMAGE = "rmohr/activemq:latest";
 
+    private static final String INPUT_TOPIC = "modify.op.msgs";
     private static final String KAFKA_DESERIALIZER = "org.apache.kafka.common.serialization.StringDeserializer";
     private static final String KAFKA_SERIALIZER = "org.apache.kafka.common.serialization.StringSerializer";
 
-    private static final String MESSAGE_CONTENT = "A message";
     private static final int ACTIVE_MQ_JMS_PORT = 61616;
+
+    private static final String MESSAGE_CONTENT = "A message";
 
     @Container
     protected static final KafkaContainer KAFKA_CONTAINER = new KafkaContainer("5.2.1").withEmbeddedZookeeper()
             .waitingFor(Wait.forLogMessage(".*started.*\\n", 1));
 
     @Container
-    protected static final GenericContainer ACTIVE_MQ_CONTAINER = new GenericContainer("rmohr/activemq:latest")
+    protected static final GenericContainer ACTIVE_MQ_CONTAINER = new GenericContainer(ACTIVEMQ_IMAGE)
             .withNetwork(KAFKA_CONTAINER.getNetwork());
 
     @Container
-    protected GenericContainer kafkaConnectContainer = new GenericContainer("sns2-system-tests_kafka-connect:latest")
+    protected GenericContainer kafkaConnectContainer = new GenericContainer(KAFKA_CONNECT_IMAGE)
             .withEnv(calculateConnectEnvProperties())
             .withNetwork(KAFKA_CONTAINER.getNetwork());
 
@@ -73,7 +76,7 @@ public class ActiveMqSinkServiceTest {
     private void createKafkaTopics() {
         AdminClient adminClient = AdminClient.create(getKafkaProperties());
 
-        CreateTopicsResult createTopicsResult = adminClient.createTopics(getTopics(),
+        CreateTopicsResult createTopicsResult = adminClient.createTopics(getKafkaTopicsToCreate(),
                 new CreateTopicsOptions().timeoutMs(5000));
         Map<String, KafkaFuture<Void>> futureResults = createTopicsResult.values();
         futureResults.values().forEach(f -> {
@@ -105,13 +108,13 @@ public class ActiveMqSinkServiceTest {
         return props;
     }
 
-    private Collection<NewTopic> getTopics() {
-        return getTopicNames().stream()
+    private Collection<NewTopic> getKafkaTopicsToCreate() {
+        return getKafkaTopicNames().stream()
                 .map(n -> new NewTopic(n, 1, (short) 1))
                 .collect(Collectors.toList());
     }
 
-    protected List<String> getTopicNames() {
+    protected List<String> getKafkaTopicNames() {
         List<String> topicNames = new ArrayList<>();
         topicNames.add(INPUT_TOPIC);
         return topicNames;
