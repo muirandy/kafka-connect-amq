@@ -4,6 +4,8 @@ import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.sink.SinkConnector;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -19,8 +21,14 @@ public class ActiveMqSinkConnector extends SinkConnector {
     }
 
     @Override
-    public List<Map<String, String>> taskConfigs(int i) {
-        return null;
+    public List<Map<String, String>> taskConfigs(int maxTasks) {
+        ArrayList<Map<String, String>> configs = new ArrayList<>();
+        configs.add(createMap());
+        return configs;
+    }
+
+    private Map<String, String> createMap() {
+        return new HashMap<>();
     }
 
     @Override
