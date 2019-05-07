@@ -1,5 +1,6 @@
 package com.aimyourtechnology.kafka.connect.activemq.connector;
 
+import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.sink.SinkConnector;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,12 +33,22 @@ class ActiveMqSinkConnectorShould {
     }
 
     @Test
-    void propertiesAreSetForEachTask() {
+    void havePropertiesSetForEachTask() {
         sinkConnector.start(buildConfiguration());
 
         List<Map<String, String>> configs = sinkConnector.taskConfigs(2);
 
         assertThat(configs).containsExactly(buildConfiguration(), buildConfiguration());
+    }
+
+    @Test
+    void haveActiveMqQueueConfig() {
+        ConfigDef configDef = sinkConnector.config();
+
+        ConfigDef.ConfigKey config = configDef.configKeys().get(KEY_ACTIVE_MQ_QUEUE_NAME);
+        assertThat(config.importance).isEqualTo(ConfigDef.Importance.HIGH);
+        assertThat(config.type).isEqualTo(ConfigDef.Type.STRING);
+        assertThat(config.documentation).isEqualTo("ActiveMQ destination Queue");
     }
 
     private Map<String, String> buildConfiguration() {
