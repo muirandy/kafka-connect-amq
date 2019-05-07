@@ -12,7 +12,7 @@ import java.util.Map;
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class ActiveMqSinkConnectorShould {
+class ActiveMqSinkConnectorShould {
     private static final String KEY_ACTIVE_MQ_QUEUE_NAME = "activemq_queue";
     private static final String KEY_KAFKA_TOPIC_NAME = "kafka_topic";
     private static final String ACTIVE_MQ_QUEUE_NAME = "anyOldQueue";
