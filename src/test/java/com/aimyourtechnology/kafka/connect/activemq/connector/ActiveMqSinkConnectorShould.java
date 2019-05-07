@@ -38,7 +38,7 @@ public class ActiveMqSinkConnectorShould {
         assertThat(configs).containsExactly(buildConfiguration(), buildConfiguration());
     }
 
-    private HashMap<String, String> buildConfiguration() {
+    private Map<String, String> buildConfiguration() {
         HashMap<String, String> expectedConfiguration = new HashMap<>();
         expectedConfiguration.put(KEY_ACTIVE_MQ_QUEUE_NAME, ACTIVE_MQ_QUEUE_NAME);
         expectedConfiguration.put(KEY_KAFKA_TOPIC_NAME, KAFKA_TOPIC_NAME);
