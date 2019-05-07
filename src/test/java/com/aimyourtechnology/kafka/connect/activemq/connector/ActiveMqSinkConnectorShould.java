@@ -12,6 +12,11 @@ import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ActiveMqSinkConnectorShould {
+    private static final String KEY_ACTIVE_MQ_QUEUE_NAME = "activemq_queue";
+    private static final String KEY_KAFKA_TOPIC_NAME = "kafka_topic";
+    private static final String ACTIVE_MQ_QUEUE_NAME = "anyOldQueue";
+    private static final String KAFKA_TOPIC_NAME = "any-kafka-topic";
+
     @Test
     void useTheActiveMqSinkTask() {
         SinkConnector sinkConnector = new ActiveMqSinkConnector();
@@ -22,18 +27,21 @@ public class ActiveMqSinkConnectorShould {
     }
 
     @Test
-    void t() {
+    void propertiesAreSetForEachTask() {
         SinkConnector sinkConnector = new ActiveMqSinkConnector();
-        Map<String, String> properties = new HashMap<>();
+        Map<String, String> properties = buildConfiguration();
 
-//        sinkConnector.start(properties);
+        sinkConnector.start(properties);
 
-        List<Map<String, String>> configs = sinkConnector.taskConfigs(1);
+        List<Map<String, String>> configs = sinkConnector.taskConfigs(2);
 
-        Map<String, String> expectedConfig = new HashMap<>();
-//        expectedConfig.put(TOPIC_CONFIG)
+        assertThat(configs).containsExactly(buildConfiguration(), buildConfiguration());
+    }
 
-        assertThat(configs).containsOnly(expectedConfig);
-
+    private HashMap<String, String> buildConfiguration() {
+        HashMap<String, String> expectedConfiguration = new HashMap<>();
+        expectedConfiguration.put(KEY_ACTIVE_MQ_QUEUE_NAME, ACTIVE_MQ_QUEUE_NAME);
+        expectedConfiguration.put(KEY_KAFKA_TOPIC_NAME, KAFKA_TOPIC_NAME);
+        return expectedConfiguration;
     }
 }
