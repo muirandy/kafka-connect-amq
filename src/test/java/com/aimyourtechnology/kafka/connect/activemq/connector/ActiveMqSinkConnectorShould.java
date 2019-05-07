@@ -2,6 +2,7 @@ package com.aimyourtechnology.kafka.connect.activemq.connector;
 
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.sink.SinkConnector;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -16,11 +17,15 @@ public class ActiveMqSinkConnectorShould {
     private static final String KEY_KAFKA_TOPIC_NAME = "kafka_topic";
     private static final String ACTIVE_MQ_QUEUE_NAME = "anyOldQueue";
     private static final String KAFKA_TOPIC_NAME = "any-kafka-topic";
+    private SinkConnector sinkConnector;
+
+    @BeforeEach
+    void setUp() {
+        sinkConnector = new ActiveMqSinkConnector();
+    }
 
     @Test
     void useTheActiveMqSinkTask() {
-        SinkConnector sinkConnector = new ActiveMqSinkConnector();
-
         Class<? extends Task> taskClass = sinkConnector.taskClass();
 
         assertEquals(ActiveMqSinkTask.class, taskClass);
@@ -28,10 +33,7 @@ public class ActiveMqSinkConnectorShould {
 
     @Test
     void propertiesAreSetForEachTask() {
-        SinkConnector sinkConnector = new ActiveMqSinkConnector();
-        Map<String, String> properties = buildConfiguration();
-
-        sinkConnector.start(properties);
+        sinkConnector.start(buildConfiguration());
 
         List<Map<String, String>> configs = sinkConnector.taskConfigs(2);
 
