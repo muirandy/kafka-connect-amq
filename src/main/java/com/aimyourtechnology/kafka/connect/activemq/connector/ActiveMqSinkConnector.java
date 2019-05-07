@@ -10,7 +10,9 @@ import java.util.List;
 import java.util.Map;
 
 public class ActiveMqSinkConnector extends SinkConnector {
+    private static final String KEY_ACTIVE_MQ_JMX_ENDPOINT = "activemq_endpoint";
     private static final String KEY_ACTIVE_MQ_QUEUE_NAME = "activemq_queue";
+    private static final String KEY_KAFKA_TOPIC_NAME = "kafka_topic";
 
     private Map<String, String> properties;
     private ConfigDef configDef;
@@ -21,7 +23,9 @@ public class ActiveMqSinkConnector extends SinkConnector {
 
     private ConfigDef buildConfigDef() {
         ConfigDef configDef = new ConfigDef();
+        configDef.define(KEY_ACTIVE_MQ_JMX_ENDPOINT, ConfigDef.Type.STRING, ConfigDef.Importance.HIGH, "ActiveMQ JMX Endpoint");
         configDef.define(KEY_ACTIVE_MQ_QUEUE_NAME, ConfigDef.Type.STRING, ConfigDef.Importance.HIGH, "ActiveMQ destination Queue");
+        configDef.define(KEY_KAFKA_TOPIC_NAME, ConfigDef.Type.STRING, ConfigDef.Importance.HIGH, "Kafka Source Topic");
         return configDef;
     }
 
@@ -58,6 +62,6 @@ public class ActiveMqSinkConnector extends SinkConnector {
 
     @Override
     public String version() {
-        return null;
+        return AppVersion.getVersion();
     }
 }

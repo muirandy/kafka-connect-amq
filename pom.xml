@@ -85,9 +85,6 @@
             <artifactId>activemq-all</artifactId>
             <version>5.10.1</version>
         </dependency>
-
-
-
     </dependencies>
 
 
