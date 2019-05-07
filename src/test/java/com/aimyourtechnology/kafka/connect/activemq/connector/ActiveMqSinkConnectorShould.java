@@ -14,11 +14,16 @@ import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ActiveMqSinkConnectorShould {
-    private static final String KEY_ACTIVE_MQ_JMX_ENDPOINT = "activemq_endpoint";
-    private static final String KEY_ACTIVE_MQ_QUEUE_NAME = "activemq_queue";
-    private static final String KEY_KAFKA_TOPIC_NAME = "kafka_topic";
+    private static final String KEY_ACTIVE_MQ_JMX_ENDPOINT = "activemq.endpoint";
+    private static final String KEY_ACTIVE_MQ_QUEUE_NAME = "activemq.queue";
+    private static final String KEY_KAFKA_BOOTSTRAP_SERVERS = "kafka.bootstrap.servers";
+    private static final String KEY_KAFKA_TOPIC_NAME = "kafka.topic";
+
+    private static final String ACTIVE_MQ_JMX_ENDPOINT = "JmxEndpoint";
     private static final String ACTIVE_MQ_QUEUE_NAME = "anyOldQueue";
+    private static final String KAFKA_BOOTSTRAP_SERVERS = "localhost:9092,localhost:9093";
     private static final String KAFKA_TOPIC_NAME = "any-kafka-topic";
+
     private SinkConnector sinkConnector;
     private AppVersion version;
 
@@ -46,30 +51,31 @@ class ActiveMqSinkConnectorShould {
 
     private Map<String, String> buildConfiguration() {
         HashMap<String, String> expectedConfiguration = new HashMap<>();
+        expectedConfiguration.put(KEY_ACTIVE_MQ_JMX_ENDPOINT, ACTIVE_MQ_JMX_ENDPOINT);
         expectedConfiguration.put(KEY_ACTIVE_MQ_QUEUE_NAME, ACTIVE_MQ_QUEUE_NAME);
+        expectedConfiguration.put(KEY_KAFKA_BOOTSTRAP_SERVERS, KAFKA_BOOTSTRAP_SERVERS);
         expectedConfiguration.put(KEY_KAFKA_TOPIC_NAME, KAFKA_TOPIC_NAME);
         return expectedConfiguration;
     }
 
     @Test
     void haveActiveMqJmxEndpointConfig() {
-        ConfigDef configDef = sinkConnector.config();
-
-        assertHighImportanceConfig(configDef, "ActiveMQ JMX Endpoint", KEY_ACTIVE_MQ_JMX_ENDPOINT);
+        assertHighImportanceConfig(KEY_ACTIVE_MQ_JMX_ENDPOINT, "ActiveMQ JMX Endpoint");
     }
 
     @Test
     void haveActiveMqQueueConfig() {
-        ConfigDef configDef = sinkConnector.config();
+        assertHighImportanceConfig(KEY_ACTIVE_MQ_QUEUE_NAME, "ActiveMQ destination Queue");
+    }
 
-        assertHighImportanceConfig(configDef, "ActiveMQ destination Queue", KEY_ACTIVE_MQ_QUEUE_NAME);
+    @Test
+    void haveKafkaBootstrapServersConfig() {
+        assertHighImportanceListConfig(KEY_KAFKA_BOOTSTRAP_SERVERS, "Kafka Broker(s) (eg localhost:9092)");
     }
 
     @Test
     void haveKafkaSourceTopicConfig() {
-        ConfigDef configDef = sinkConnector.config();
-
-        assertHighImportanceConfig(configDef, "Kafka Source Topic", KEY_KAFKA_TOPIC_NAME);
+        assertHighImportanceConfig(KEY_KAFKA_TOPIC_NAME, "Kafka Source Topic");
     }
 
     @Test
@@ -78,10 +84,19 @@ class ActiveMqSinkConnectorShould {
         assertThat(version).isNotEmpty();
     }
 
-    private void assertHighImportanceConfig(ConfigDef configDef, String documentation, String configKey) {
+    private void assertHighImportanceConfig(String configKey, String documentation) {
+        ConfigDef configDef = sinkConnector.config();
         ConfigDef.ConfigKey config = configDef.configKeys().get(configKey);
         assertThat(config.importance).isEqualTo(ConfigDef.Importance.HIGH);
         assertThat(config.type).isEqualTo(ConfigDef.Type.STRING);
+        assertThat(config.documentation).isEqualTo(documentation);
+    }
+
+    private void assertHighImportanceListConfig(String configKey, String documentation) {
+        ConfigDef configDef = sinkConnector.config();
+        ConfigDef.ConfigKey config = configDef.configKeys().get(configKey);
+        assertThat(config.importance).isEqualTo(ConfigDef.Importance.HIGH);
+        assertThat(config.type).isEqualTo(ConfigDef.Type.LIST);
         assertThat(config.documentation).isEqualTo(documentation);
     }
 }
