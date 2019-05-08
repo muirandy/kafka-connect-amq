@@ -14,6 +14,22 @@ class ActiveMqProducer implements JmsProducer {
     }
 
     @Override
+    public void start() {
+        ActiveMQConnectionFactory factory = createConnectionFactory(activeMqEndpoint);
+        try {
+            Connection connection = factory.createConnection();
+            connection.start();
+        } catch (JMSException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void stop() {
+
+    }
+
+    @Override
     public void write(String message) {
         ActiveMQConnectionFactory factory = createConnectionFactory(activeMqEndpoint);
         try {

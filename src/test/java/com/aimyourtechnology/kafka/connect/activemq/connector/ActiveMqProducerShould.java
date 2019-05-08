@@ -50,21 +50,28 @@ class ActiveMqProducerShould {
     @BeforeEach
     void setUp() throws JMSException {
         when(activeMQConnectionFactory.createConnection()).thenReturn(connection);
-        when(connection.createSession(false, Session.AUTO_ACKNOWLEDGE)).thenReturn(session);
-        when(session.createQueue(QUEUE_NAME)).thenReturn(queue);
-        when(session.createProducer(queue)).thenReturn(producer);
-        when(session.createTextMessage(MESSAGE)).thenReturn(textMessage);
-        when(textMessage.getText()).thenReturn(MESSAGE);
-        
+
         when(activeMqProducer.createConnectionFactory(ACTIVE_MQ_CONNECTION_STRING)).thenReturn(activeMQConnectionFactory);
     }
 
     @Test
     void writeToActiveMq() throws JMSException {
+        when(connection.createSession(false, Session.AUTO_ACKNOWLEDGE)).thenReturn(session);
+        when(session.createQueue(QUEUE_NAME)).thenReturn(queue);
+        when(session.createProducer(queue)).thenReturn(producer);
+        when(session.createTextMessage(MESSAGE)).thenReturn(textMessage);
+        when(textMessage.getText()).thenReturn(MESSAGE);
 
         activeMqProducer.write(MESSAGE);
 
         verify(producer).send(textMessageCaptor.capture());
         assertThat(textMessageCaptor.getValue().getText()).isEqualTo(MESSAGE);
+    }
+
+    @Test
+    void startTheActiveMqConnection() throws JMSException {
+        activeMqProducer.start();
+
+        verify(connection).start();
     }
 }

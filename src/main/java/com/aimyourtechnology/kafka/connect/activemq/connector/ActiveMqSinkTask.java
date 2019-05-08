@@ -23,6 +23,8 @@ public class ActiveMqSinkTask extends SinkTask {
         producer = createProducer(
                 map.get(KEY_ACTIVE_MQ_JMX_ENDPOINT),
                 map.get(KEY_ACTIVE_MQ_QUEUE_NAME));
+
+        producer.start();
     }
 
     JmsProducer createProducer(String activeMqEndpoint, String activeMqQueueName) {
@@ -38,6 +40,6 @@ public class ActiveMqSinkTask extends SinkTask {
 
     @Override
     public void stop() {
-
+        producer.stop();
     }
 }

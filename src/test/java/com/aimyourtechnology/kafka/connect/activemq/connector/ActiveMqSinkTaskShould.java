@@ -55,6 +55,25 @@ public class ActiveMqSinkTaskShould {
         verify(activeMqProducer).write(VALUE);
     }
 
+    @Test
+    void startTheProducer() {
+        when(task.createProducer(ACTIVE_MQ_ENDPOINT, ACTIVE_MQ_QUEUE_NAME)).thenReturn(activeMqProducer);
+
+        task.start(createConfig());
+
+        verify(activeMqProducer).start();
+    }
+
+    @Test
+    void stopTheProducer() {
+        when(task.createProducer(ACTIVE_MQ_ENDPOINT, ACTIVE_MQ_QUEUE_NAME)).thenReturn(activeMqProducer);
+        task.start(createConfig());
+
+        task.stop();
+
+        verify(activeMqProducer).stop();
+    }
+
     private Map<String, String> createConfig() {
         Map<String, String> config = new HashMap<>();
         config.put(KEY_ACTIVE_MQ_JMX_ENDPOINT, ACTIVE_MQ_ENDPOINT);
