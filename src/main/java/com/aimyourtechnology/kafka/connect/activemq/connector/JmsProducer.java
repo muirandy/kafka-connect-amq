@@ -1,5 +1,5 @@
 package com.aimyourtechnology.kafka.connect.activemq.connector;
 
-public interface JmsProducer {
+interface JmsProducer {
     void write(String value);
 }

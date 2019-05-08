@@ -9,9 +9,7 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
@@ -23,10 +21,13 @@ public class ActiveMqSinkTaskShould {
     private static final int PARTITION = 42;
     private static final Schema KEY_SCHEMA = Schema.STRING_SCHEMA;
     private static final String KEY = "KafkaMessageKey";
+    private static final String KEY_ACTIVE_MQ_JMX_ENDPOINT = "activemq.endpoint";
+    private static final String KEY_ACTIVE_MQ_QUEUE_NAME = "activemq.queue";
     private static final Schema VALUE_SCHEMA = Schema.STRING_SCHEMA;
     private static final String VALUE = "<some><xml><perhaps/></xml></some>";
     private static final long OFFSET = 666L;
-
+    private static final String ACTIVE_MQ_ENDPOINT = "endpoint";
+    private static final String ACTIVE_MQ_QUEUE_NAME = "queue name";
 
     @Mock
     private JmsProducer activeMqProducer;
@@ -46,12 +47,19 @@ public class ActiveMqSinkTaskShould {
         SinkRecord sinkRecord = createSinkRecord();
         sinkRecords.add(sinkRecord);
 
-        when(task.createProducer()).thenReturn(activeMqProducer);
+        when(task.createProducer(ACTIVE_MQ_ENDPOINT, ACTIVE_MQ_QUEUE_NAME)).thenReturn(activeMqProducer);
 
-        task.start(Collections.emptyMap());
+        task.start(createConfig());
         task.put(sinkRecords);
 
         verify(activeMqProducer).write(VALUE);
+    }
+
+    private Map<String, String> createConfig() {
+        Map<String, String> config = new HashMap<>();
+        config.put(KEY_ACTIVE_MQ_JMX_ENDPOINT, ACTIVE_MQ_ENDPOINT);
+        config.put(KEY_ACTIVE_MQ_QUEUE_NAME, ACTIVE_MQ_QUEUE_NAME);
+        return config;
     }
 
     @NotNull

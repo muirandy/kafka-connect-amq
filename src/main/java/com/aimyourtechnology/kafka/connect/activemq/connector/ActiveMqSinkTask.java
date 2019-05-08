@@ -9,6 +9,8 @@ import java.util.Map;
 public class ActiveMqSinkTask extends SinkTask {
 
     private JmsProducer producer;
+    private static final String KEY_ACTIVE_MQ_JMX_ENDPOINT = "activemq.endpoint";
+    private static final String KEY_ACTIVE_MQ_QUEUE_NAME = "activemq.queue";
 
     @Override
     public String version() {
@@ -17,11 +19,14 @@ public class ActiveMqSinkTask extends SinkTask {
 
     @Override
     public void start(Map<String, String> map) {
-        producer = createProducer();
+
+        producer = createProducer(
+                map.get(KEY_ACTIVE_MQ_JMX_ENDPOINT),
+                map.get(KEY_ACTIVE_MQ_QUEUE_NAME));
     }
 
-    JmsProducer createProducer() {
-        return new ActiveMqProducer();
+    JmsProducer createProducer(String activeMqEndpoint, String activeMqQueueName) {
+        return new ActiveMqProducer(activeMqEndpoint, activeMqQueueName);
     }
 
     @Override
