@@ -94,6 +94,12 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.8</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.apache.activemq</groupId>
             <artifactId>activemq-all</artifactId>
             <version>5.10.1</version>
@@ -119,14 +125,8 @@
                 <version>3.1.1</version>
                 <configuration>
                     <descriptorRefs>
-                        <descriptorRef>fat</descriptorRef>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
                     </descriptorRefs>
-                    <archive>
-                        <manifest>
-                            <mainClass>com.aimyourtechnology.</mainClass>
-                        </manifest>
-                    </archive>
-
                 </configuration>
                 <executions>
                     <execution>

@@ -2,6 +2,11 @@ package com.aimyourtechnology.kafka.connect.activemq.sink;
 
 import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.Ports;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.CreateTopicsOptions;
 import org.apache.kafka.clients.admin.CreateTopicsResult;
@@ -17,15 +22,19 @@ import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
+import static org.apache.http.entity.ContentType.APPLICATION_JSON;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -42,33 +51,56 @@ public class ActiveMqSinkServiceTest {
 
     private static final String MESSAGE_CONTENT = "A message";
 
+    private static final Map<String, String> KAFKA_CONNECT_ENV = new HashMap<String, String>() {{
+        put("ENV CONNECT_PLUGIN_PATH", "/usr/share/java,/usr/share/confluent-hub-components");
+    }};
+
     @Container
     protected static final KafkaContainer KAFKA_CONTAINER = new KafkaContainer("5.2.1").withEmbeddedZookeeper()
             .waitingFor(Wait.forLogMessage(".*started.*\\n", 1));
 
     @Container
     protected static final GenericContainer ACTIVE_MQ_CONTAINER = new GenericContainer(ACTIVEMQ_IMAGE)
-            .withNetwork(KAFKA_CONTAINER.getNetwork());
+            .withNetwork(KAFKA_CONTAINER.getNetwork())
+            .withExposedPorts(ACTIVE_MQ_JMS_PORT)
+            ;
 
     @Container
-    protected GenericContainer kafkaConnectContainer = new GenericContainer(KAFKA_CONNECT_IMAGE)
+    protected GenericContainer kafkaConnectContainer = new GenericContainer(
+            new ImageFromDockerfile()
+                    .withFileFromFile("Dockerfile", getDockerfileFile())
+                    .withFileFromFile("kafka-connect-amq-1.0-SNAPSHOT-jar-with-dependencies.jar",
+                            new File("target/kafka-connect-amq-1.0-SNAPSHOT-jar-with-dependencies.jar")))
             .withEnv(calculateConnectEnvProperties())
-            .withNetwork(KAFKA_CONTAINER.getNetwork());
+            .withNetwork(KAFKA_CONTAINER.getNetwork())
+            .waitingFor(Wait.forLogMessage(".*Finished starting connectors and tasks.*\\n", 1));
+
+
+    private File getDockerfileFile() {
+        return new File("./Dockerfile");
+    }
 
     private Map<String, String> calculateConnectEnvProperties() {
-        createKafkaTopics();
-
         Map<String, String> properties = new HashMap<>();
         properties.put("CONNECT_BOOTSTRAP_SERVERS", KAFKA_CONTAINER.getNetworkAliases().get(0) + ":9092");
         properties.put("CONNECT_GROUP_ID", "service-test-connect-group");
         properties.put("CONNECT_REST_PORT", "8083");
         properties.put("CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR", "1");
-        properties.put("CONNECT_KEY_CONVERTER", "org.apache.kafka.connect.json.JsonConverter");
-        properties.put("CONNECT_VALUE_CONVERTER", "org.apache.kafka.connect.json.JsonConverter");
+        properties.put("CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR", "1");
+        properties.put("CONNECT_STATUS_STORAGE_REPLICATION_FACTOR", "1");
+        properties.put("CONNECT_KEY_CONVERTER", "org.apache.kafka.connect.storage.StringConverter");
+        properties.put("CONNECT_VALUE_CONVERTER", "org.apache.kafka.connect.storage.StringConverter");
         properties.put("CONNECT_INTERNAL_KEY_CONVERTER", "org.apache.kafka.connect.json.JsonConverter");
         properties.put("CONNECT_INTERNAL_VALUE_CONVERTER", "org.apache.kafka.connect.json.JsonConverter");
         properties.put("CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE", "false");
         properties.put("CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE", "false");
+        properties.put("CONNECT_CONFIG_STORAGE_TOPIC", "docker-connect-configs");
+        properties.put("CONNECT_OFFSET_STORAGE_TOPIC", "docker-connect-offsets");
+        properties.put("CONNECT_STATUS_STORAGE_TOPIC", "docker-connect-status");
+        properties.put("CONNECT_REST_ADVERTISED_HOST_NAME", "connect");
+        properties.put("CONNECT_PLUGIN_PATH", "/usr/share/java/kafka-amq2");
+
+        createKafkaTopics();
 
         return properties;
     }
@@ -117,6 +149,9 @@ public class ActiveMqSinkServiceTest {
     protected List<String> getKafkaTopicNames() {
         List<String> topicNames = new ArrayList<>();
         topicNames.add(INPUT_TOPIC);
+        topicNames.add("docker-connect-configs");
+        topicNames.add("docker-connect-offsets");
+        topicNames.add("docker-connect-status");
         return topicNames;
     }
 
@@ -129,8 +164,45 @@ public class ActiveMqSinkServiceTest {
 
     @Test
     public void transfersMessageOntoActiveMq() throws ExecutionException, InterruptedException {
+        configurePlugin();
         writeStringToKafkaInputTopic();
+        waitForConnectToDoItsMagic();
         assertJmsMessageArrivedOnOutputMqQueue();
+    }
+
+
+    private static final String KEY_ACTIVE_MQ_JMX_ENDPOINT = "activemq.endpoint";
+    private static final String KEY_ACTIVE_MQ_QUEUE_NAME = "activemq.queue";
+    private static final String KEY_KAFKA_BOOTSTRAP_SERVERS = "kafka.bootstrap.servers";
+    private static final String KEY_KAFKA_TOPIC_NAME = "kafka.topic";
+
+    private void configurePlugin() {
+        HttpPost httpPost = new HttpPost(getUriForConnectEndpoint());
+        HttpEntity httpEntity = new StringEntity("{\n" +
+                "\"name\": \"'com.aimyourtechnology.kafka.connect.activemq.connector.ActiveMqSinkConnector'\",\n" +
+                "\"config\": {\n" +
+                "   \"connector.class\": \"com.aimyourtechnology.kafka.connect.activemq.connector" +
+                ".ActiveMqSinkConnector\",\n" +
+                "\"" + KEY_ACTIVE_MQ_JMX_ENDPOINT + "\":\"tcp://" + ACTIVE_MQ_CONTAINER.getNetworkAliases().get(0) + ":61616\",\n" +
+                "\"" + KEY_ACTIVE_MQ_QUEUE_NAME + "\":\"TEST.FOO\",\n" +
+                "\"" + KEY_KAFKA_TOPIC_NAME + "\":\"" + INPUT_TOPIC + "\",\n" +
+                "\"topics\":\"" + INPUT_TOPIC + "\",\n" +
+                "\"" + KEY_KAFKA_BOOTSTRAP_SERVERS + "\":\"" + KAFKA_CONTAINER.getNetworkAliases().get(0) + ":9092" +
+                "\"\n" +
+                "   }\n" +
+                "}", APPLICATION_JSON);
+
+        httpPost.setEntity(httpEntity);
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            httpClient.execute(httpPost).close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private String getUriForConnectEndpoint() {
+        String port = findExposedPortForInternalPort(kafkaConnectContainer, 8083);
+        return "http://localhost:" + port + "/connectors";
     }
 
     protected void writeStringToKafkaInputTopic() throws InterruptedException, ExecutionException {
@@ -149,6 +221,14 @@ public class ActiveMqSinkServiceTest {
         return MESSAGE_CONTENT;
     }
 
+    private void waitForConnectToDoItsMagic() {
+        try {
+            Thread.sleep(4000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
     private void assertJmsMessageArrivedOnOutputMqQueue() {
         ActiveMqConsumer consumer = new ActiveMqConsumer(readActiveMqPort());
         String messageFromActiveMqQueue = consumer.run();
@@ -162,7 +242,7 @@ public class ActiveMqSinkServiceTest {
     private String findExposedPortForInternalPort(GenericContainer activeMqContainer, int internalPort) {
         Map<ExposedPort, Ports.Binding[]> bindings = getActiveMqBindings(activeMqContainer);
         ExposedPort port = bindings.keySet().stream().filter(k -> internalPort == k.getPort())
-                                             .findFirst().get();
+                .findFirst().get();
 
         Ports.Binding[] exposedBinding = bindings.get(port);
         Ports.Binding binding = exposedBinding[0];
