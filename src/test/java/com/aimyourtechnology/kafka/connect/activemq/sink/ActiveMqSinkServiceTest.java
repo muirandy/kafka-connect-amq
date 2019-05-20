@@ -40,7 +40,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 public class ActiveMqSinkServiceTest {
-    private static final String KAFKA_CONNECT_IMAGE = "sns2-system-tests_connect:latest";
     private static final String ACTIVEMQ_IMAGE = "rmohr/activemq:latest";
 
     private static final String INPUT_TOPIC = "modify.op.msgs";
@@ -50,10 +49,10 @@ public class ActiveMqSinkServiceTest {
     private static final int ACTIVE_MQ_JMS_PORT = 61616;
 
     private static final String MESSAGE_CONTENT = "A message";
-
-    private static final Map<String, String> KAFKA_CONNECT_ENV = new HashMap<String, String>() {{
-        put("ENV CONNECT_PLUGIN_PATH", "/usr/share/java,/usr/share/confluent-hub-components");
-    }};
+    private static final String KEY_ACTIVE_MQ_JMX_ENDPOINT = "activemq.endpoint";
+    private static final String KEY_ACTIVE_MQ_QUEUE_NAME = "activemq.queue";
+    private static final String KEY_KAFKA_BOOTSTRAP_SERVERS = "kafka.bootstrap.servers";
+    private static final String KEY_KAFKA_TOPIC_NAME = "kafka.topic";
 
     @Container
     protected static final KafkaContainer KAFKA_CONTAINER = new KafkaContainer("5.2.1").withEmbeddedZookeeper()
@@ -62,8 +61,7 @@ public class ActiveMqSinkServiceTest {
     @Container
     protected static final GenericContainer ACTIVE_MQ_CONTAINER = new GenericContainer(ACTIVEMQ_IMAGE)
             .withNetwork(KAFKA_CONTAINER.getNetwork())
-            .withExposedPorts(ACTIVE_MQ_JMS_PORT)
-            ;
+            .withExposedPorts(ACTIVE_MQ_JMS_PORT);
 
     @Container
     protected GenericContainer kafkaConnectContainer = new GenericContainer(
@@ -114,11 +112,7 @@ public class ActiveMqSinkServiceTest {
         futureResults.values().forEach(f -> {
             try {
                 f.get(5000, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } catch (ExecutionException e) {
-                e.printStackTrace();
-            } catch (TimeoutException e) {
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
                 e.printStackTrace();
             }
         });
@@ -127,7 +121,6 @@ public class ActiveMqSinkServiceTest {
 
     protected static Properties getKafkaProperties() {
         Properties props = new Properties();
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_CONTAINER.getBootstrapServers());
         props.put("acks", "all");
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_CONTAINER.getBootstrapServers());
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, KAFKA_SERIALIZER);
@@ -170,12 +163,6 @@ public class ActiveMqSinkServiceTest {
         assertJmsMessageArrivedOnOutputMqQueue();
     }
 
-
-    private static final String KEY_ACTIVE_MQ_JMX_ENDPOINT = "activemq.endpoint";
-    private static final String KEY_ACTIVE_MQ_QUEUE_NAME = "activemq.queue";
-    private static final String KEY_KAFKA_BOOTSTRAP_SERVERS = "kafka.bootstrap.servers";
-    private static final String KEY_KAFKA_TOPIC_NAME = "kafka.topic";
-
     private void configurePlugin() {
         HttpPost httpPost = new HttpPost(getUriForConnectEndpoint());
         HttpEntity httpEntity = new StringEntity("{\n" +
@@ -183,7 +170,8 @@ public class ActiveMqSinkServiceTest {
                 "\"config\": {\n" +
                 "   \"connector.class\": \"com.aimyourtechnology.kafka.connect.activemq.connector" +
                 ".ActiveMqSinkConnector\",\n" +
-                "\"" + KEY_ACTIVE_MQ_JMX_ENDPOINT + "\":\"tcp://" + ACTIVE_MQ_CONTAINER.getNetworkAliases().get(0) + ":61616\",\n" +
+                "\"" + KEY_ACTIVE_MQ_JMX_ENDPOINT + "\":\"tcp://" + ACTIVE_MQ_CONTAINER.getNetworkAliases().get(0) +
+                ":61616\",\n" +
                 "\"" + KEY_ACTIVE_MQ_QUEUE_NAME + "\":\"TEST.FOO\",\n" +
                 "\"" + KEY_KAFKA_TOPIC_NAME + "\":\"" + INPUT_TOPIC + "\",\n" +
                 "\"topics\":\"" + INPUT_TOPIC + "\",\n" +
