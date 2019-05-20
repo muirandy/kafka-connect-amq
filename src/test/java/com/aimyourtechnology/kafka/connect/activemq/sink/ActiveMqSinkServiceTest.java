@@ -1,5 +1,6 @@
 package com.aimyourtechnology.kafka.connect.activemq.sink;
 
+import com.eclipsesource.json.JsonObject;
 import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.Ports;
 import org.apache.http.HttpEntity;
@@ -47,12 +48,22 @@ public class ActiveMqSinkServiceTest {
     private static final String KAFKA_SERIALIZER = "org.apache.kafka.common.serialization.StringSerializer";
 
     private static final int ACTIVE_MQ_JMS_PORT = 61616;
+    private static final String ACTIVE_MQ_QUEUE_NAME = "TEST.FOO";
 
     private static final String MESSAGE_CONTENT = "A message";
+    private static final String TOPICS = "topics";
+    private static final String CONNECTOR_NAME =
+            "'com.aimyourtechnology.kafka.connect.activemq.connector.ActiveMqSinkConnector'";
+    private static final String CONNECTOR_CLASS =
+            "com.aimyourtechnology.kafka.connect.activemq.connector.ActiveMqSinkConnector";
+
     private static final String KEY_ACTIVE_MQ_JMX_ENDPOINT = "activemq.endpoint";
     private static final String KEY_ACTIVE_MQ_QUEUE_NAME = "activemq.queue";
     private static final String KEY_KAFKA_BOOTSTRAP_SERVERS = "kafka.bootstrap.servers";
     private static final String KEY_KAFKA_TOPIC_NAME = "kafka.topic";
+    private static final String KEY_CONNECTOR_CLASS = "connector.class";
+    private static final String KEY_CONNECTOR_NAME = "name";
+    private static final String KEY_CONFIG = "config";
 
     @Container
     protected static final KafkaContainer KAFKA_CONTAINER = new KafkaContainer("5.2.1").withEmbeddedZookeeper()
@@ -80,7 +91,7 @@ public class ActiveMqSinkServiceTest {
 
     private Map<String, String> calculateConnectEnvProperties() {
         Map<String, String> properties = new HashMap<>();
-        properties.put("CONNECT_BOOTSTRAP_SERVERS", KAFKA_CONTAINER.getNetworkAliases().get(0) + ":9092");
+        properties.put("CONNECT_BOOTSTRAP_SERVERS", getKafkaBootstrapServers());
         properties.put("CONNECT_GROUP_ID", "service-test-connect-group");
         properties.put("CONNECT_REST_PORT", "8083");
         properties.put("CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR", "1");
@@ -165,20 +176,7 @@ public class ActiveMqSinkServiceTest {
 
     private void configurePlugin() {
         HttpPost httpPost = new HttpPost(getUriForConnectEndpoint());
-        HttpEntity httpEntity = new StringEntity("{\n" +
-                "\"name\": \"'com.aimyourtechnology.kafka.connect.activemq.connector.ActiveMqSinkConnector'\",\n" +
-                "\"config\": {\n" +
-                "   \"connector.class\": \"com.aimyourtechnology.kafka.connect.activemq.connector" +
-                ".ActiveMqSinkConnector\",\n" +
-                "\"" + KEY_ACTIVE_MQ_JMX_ENDPOINT + "\":\"tcp://" + ACTIVE_MQ_CONTAINER.getNetworkAliases().get(0) +
-                ":61616\",\n" +
-                "\"" + KEY_ACTIVE_MQ_QUEUE_NAME + "\":\"TEST.FOO\",\n" +
-                "\"" + KEY_KAFKA_TOPIC_NAME + "\":\"" + INPUT_TOPIC + "\",\n" +
-                "\"topics\":\"" + INPUT_TOPIC + "\",\n" +
-                "\"" + KEY_KAFKA_BOOTSTRAP_SERVERS + "\":\"" + KAFKA_CONTAINER.getNetworkAliases().get(0) + ":9092" +
-                "\"\n" +
-                "   }\n" +
-                "}", APPLICATION_JSON);
+        HttpEntity httpEntity = new StringEntity(getPayload(), APPLICATION_JSON);
 
         httpPost.setEntity(httpEntity);
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
@@ -186,6 +184,28 @@ public class ActiveMqSinkServiceTest {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private String getPayload() {
+        JsonObject config = new JsonObject()
+                .add(KEY_CONNECTOR_CLASS, CONNECTOR_CLASS)
+                .add(KEY_ACTIVE_MQ_JMX_ENDPOINT, getActiveMqJmxEndpoint())
+                .add(KEY_ACTIVE_MQ_QUEUE_NAME, ACTIVE_MQ_QUEUE_NAME)
+                .add(KEY_KAFKA_TOPIC_NAME, INPUT_TOPIC)
+                .add(TOPICS, INPUT_TOPIC)
+                .add(KEY_KAFKA_BOOTSTRAP_SERVERS, getKafkaBootstrapServers());
+        return new JsonObject()
+                .add(KEY_CONNECTOR_NAME, CONNECTOR_NAME)
+                .add(KEY_CONFIG, config)
+                .toString();
+    }
+
+    private String getKafkaBootstrapServers() {
+        return KAFKA_CONTAINER.getNetworkAliases().get(0) + ":9092";
+    }
+
+    private String getActiveMqJmxEndpoint() {
+        return "tcp://" + ACTIVE_MQ_CONTAINER.getNetworkAliases().get(0) + ":61616";
     }
 
     private String getUriForConnectEndpoint() {
@@ -251,5 +271,4 @@ public class ActiveMqSinkServiceTest {
         System.out.println("Active MQ Logs = " + ACTIVE_MQ_CONTAINER.getLogs());
         System.out.println("Kafka Connect Logs = " + kafkaConnectContainer.getLogs());
     }
-
 }
