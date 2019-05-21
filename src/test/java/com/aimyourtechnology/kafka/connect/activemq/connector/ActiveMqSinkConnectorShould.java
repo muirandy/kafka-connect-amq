@@ -17,7 +17,7 @@ class ActiveMqSinkConnectorShould {
     private static final String KEY_ACTIVE_MQ_JMX_ENDPOINT = "activemq.endpoint";
     private static final String KEY_ACTIVE_MQ_QUEUE_NAME = "activemq.queue";
     private static final String KEY_KAFKA_BOOTSTRAP_SERVERS = "kafka.bootstrap.servers";
-    private static final String KEY_KAFKA_TOPIC_NAME = "kafka.topic";
+    private static final String STANDARD_KAFKA_CONNECT_TOPICS_KEY = "topics";
 
     private static final String ACTIVE_MQ_JMX_ENDPOINT = "JmxEndpoint";
     private static final String ACTIVE_MQ_QUEUE_NAME = "anyOldQueue";
@@ -54,7 +54,7 @@ class ActiveMqSinkConnectorShould {
         expectedConfiguration.put(KEY_ACTIVE_MQ_JMX_ENDPOINT, ACTIVE_MQ_JMX_ENDPOINT);
         expectedConfiguration.put(KEY_ACTIVE_MQ_QUEUE_NAME, ACTIVE_MQ_QUEUE_NAME);
         expectedConfiguration.put(KEY_KAFKA_BOOTSTRAP_SERVERS, KAFKA_BOOTSTRAP_SERVERS);
-        expectedConfiguration.put(KEY_KAFKA_TOPIC_NAME, KAFKA_TOPIC_NAME);
+        expectedConfiguration.put(STANDARD_KAFKA_CONNECT_TOPICS_KEY, KAFKA_TOPIC_NAME);
         return expectedConfiguration;
     }
 
@@ -75,7 +75,7 @@ class ActiveMqSinkConnectorShould {
 
     @Test
     void haveKafkaSourceTopicConfig() {
-        assertHighImportanceConfig(KEY_KAFKA_TOPIC_NAME, "Kafka Source Topic");
+        assertHighImportanceConfig(STANDARD_KAFKA_CONNECT_TOPICS_KEY, "Kafka Source Topic(s)");
     }
 
     @Test
