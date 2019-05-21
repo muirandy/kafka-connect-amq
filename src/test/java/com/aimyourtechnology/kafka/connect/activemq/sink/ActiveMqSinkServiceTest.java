@@ -52,8 +52,7 @@ public class ActiveMqSinkServiceTest {
 
     private static final String MESSAGE_CONTENT = "A message";
     private static final String STANDARD_KAFKA_CONNECT_TOPICS_KEY = "topics";
-    private static final String CONNECTOR_NAME =
-            "'com.aimyourtechnology.kafka.connect.activemq.connector.ActiveMqSinkConnector'";
+    private static final String CONNECTOR_NAME ="banana";
     private static final String CONNECTOR_CLASS =
             "com.aimyourtechnology.kafka.connect.activemq.connector.ActiveMqSinkConnector";
 
@@ -190,7 +189,6 @@ public class ActiveMqSinkServiceTest {
                 .add(KEY_CONNECTOR_CLASS, CONNECTOR_CLASS)
                 .add(KEY_ACTIVE_MQ_JMX_ENDPOINT, getActiveMqJmxEndpoint())
                 .add(KEY_ACTIVE_MQ_QUEUE_NAME, ACTIVE_MQ_QUEUE_NAME)
-//                .add(KEY_KAFKA_TOPIC_NAME, INPUT_TOPIC)
                 .add(STANDARD_KAFKA_CONNECT_TOPICS_KEY, INPUT_TOPIC)
                 .add(KEY_KAFKA_BOOTSTRAP_SERVERS, getKafkaBootstrapServers());
         return new JsonObject()
