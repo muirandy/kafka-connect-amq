@@ -31,6 +31,8 @@
         </developer>
     </developers>
     <scm>
+        <connection>scm:git:git://github.com/muirandy/kafka-connect-amq.git</connection>
+        <developerConnection>scm:git:ssh://github.com:muirandy/kafka-connect-amq.git</developerConnection>
         <url>https://github.com/muirandy/kafka-connect-amq</url>
     </scm>
 
