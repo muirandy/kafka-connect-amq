@@ -22,6 +22,14 @@
         </license>
     </licenses>
 
+    <developers>
+        <developer>
+            <name>Andy Muir</name>
+            <email>andy.muir@aimyourtechnology.com</email>
+            <organization>Aim Your Technology Ltd</organization>
+            <organizationUrl>https://aimyourtechnology.com</organizationUrl>
+        </developer>
+    </developers>
     <scm>
         <url>https://github.com/muirandy/kafka-connect-amq</url>
     </scm>
