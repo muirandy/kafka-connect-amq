@@ -60,36 +60,25 @@ class ActiveMqSinkConnectorShould {
 
     @Test
     void haveActiveMqJmxEndpointConfig() {
-        assertHighImportanceConfig(KEY_ACTIVE_MQ_JMX_ENDPOINT, "ActiveMQ JMX Endpoint");
+        assertHighImportanceStringConfig(KEY_ACTIVE_MQ_JMX_ENDPOINT, "ActiveMQ JMX Endpoint");
     }
 
-    @Test
-    void haveActiveMqQueueConfig() {
-        assertHighImportanceConfig(KEY_ACTIVE_MQ_QUEUE_NAME, "ActiveMQ destination Queue");
-    }
-
-    @Test
-    void haveKafkaBootstrapServersConfig() {
-        assertHighImportanceListConfig(KEY_KAFKA_BOOTSTRAP_SERVERS, "Kafka Broker(s) (eg localhost:9092)");
-    }
-
-    @Test
-    void haveKafkaSourceTopicConfig() {
-        assertHighImportanceConfig(STANDARD_KAFKA_CONNECT_TOPICS_KEY, "Kafka Source Topic(s)");
-    }
-
-    @Test
-    void haveVersion() {
-        String version = sinkConnector.version();
-        assertThat(version).isNotEmpty();
-    }
-
-    private void assertHighImportanceConfig(String configKey, String documentation) {
+    private void assertHighImportanceStringConfig(String configKey, String documentation) {
         ConfigDef configDef = sinkConnector.config();
         ConfigDef.ConfigKey config = configDef.configKeys().get(configKey);
         assertThat(config.importance).isEqualTo(ConfigDef.Importance.HIGH);
         assertThat(config.type).isEqualTo(ConfigDef.Type.STRING);
         assertThat(config.documentation).isEqualTo(documentation);
+    }
+
+    @Test
+    void haveActiveMqQueueConfig() {
+        assertHighImportanceStringConfig(KEY_ACTIVE_MQ_QUEUE_NAME, "ActiveMQ destination Queue");
+    }
+
+    @Test
+    void haveKafkaBootstrapServersConfig() {
+        assertHighImportanceListConfig(KEY_KAFKA_BOOTSTRAP_SERVERS, "Kafka Broker(s) (eg localhost:9092)");
     }
 
     private void assertHighImportanceListConfig(String configKey, String documentation) {
@@ -98,5 +87,16 @@ class ActiveMqSinkConnectorShould {
         assertThat(config.importance).isEqualTo(ConfigDef.Importance.HIGH);
         assertThat(config.type).isEqualTo(ConfigDef.Type.LIST);
         assertThat(config.documentation).isEqualTo(documentation);
+    }
+
+    @Test
+    void haveKafkaSourceTopicConfig() {
+        assertHighImportanceStringConfig(STANDARD_KAFKA_CONNECT_TOPICS_KEY, "Kafka Source Topic(s)");
+    }
+
+    @Test
+    void haveVersion() {
+        String version = sinkConnector.version();
+        assertThat(version).isNotEmpty();
     }
 }
