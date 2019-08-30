@@ -4,19 +4,23 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.aimyourtechnology</groupId>
+    <groupId>com.github.muirandy</groupId>
     <artifactId>kafka-connect-amq</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>kafka-connect-amq</name>
-    <organization>
-        <name>Aim Your Technology Ltd</name>
-        <url>www.aimyourtechnology.com</url>
-    </organization>
-    <url>www.aimyourtechnology.com</url>
+    <url>https://github.com/muirandy/kafka-connect-amq</url>
     <description>
         A Kafka Connect ActiveMQ connector for copying data from Kafka to MQ
     </description>
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/mit-license.php</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
 
     <scm>
         <url>https://github.com/muirandy/kafka-connect-amq</url>
